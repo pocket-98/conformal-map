@@ -30,7 +30,7 @@ namespace tree {
      * the sign of the first factor for each term indicates + or -
      * the sign of every factor after the first indicates * or /
      */
-    const std::vector<std::vector<int>>&
+    const std::vector<std::vector<int>>
     subdivide(const char* s, int a, int b, std::ostream* err=&std::cerr);
 
     /** create an expression tree from math string */

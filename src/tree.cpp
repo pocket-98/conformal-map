@@ -5,7 +5,7 @@
 #include "tree.hpp"
 #include <cstring>
 
-const std::vector<std::vector<int>>&
+const std::vector<std::vector<int>>
 tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     int i;
     int j = 0;
@@ -17,8 +17,7 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     std::vector<int>::const_iterator t, tend;
     std::vector<int>::const_iterator p, pend;
 
-    // holds all addition and multiplication sub intervals
-    std::vector<std::vector<int>>& terms = *(new std::vector<std::vector<int>>);
+    std::vector<std::vector<int>> terms; // holds all + and * subintervals
     std::vector<int> term; // subintervals of products for a single term
 
     // break up into +- substring intervals [+-a, b) and track parenthesis
@@ -170,8 +169,8 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
 //            parent->children[0] = parseTreeHelper(s, i, i);
 //        }
 //        break;
-    int l = terms.size();
-    return tree::createTree(l);
+
+    return NULL;
 }
 
 tree::Tree* tree::parseTree(const std::string& s) {
@@ -214,16 +213,12 @@ tree::Tree* tree::createTree(int n) {
 
 void tree::freeTree(tree::Tree* t) {
     int i;
-    tree::Tree* child;
     for (i=0; i<t->n; ++i) {
-        child = t->children[i];
-        if (child != NULL) {
-            freeTree(child);
-        }
+        freeTree(t->children[i]);
     }
     // 3 calls to delete
     delete t->expression;
-    delete t->children;
+    delete[] t->children;
     delete t;
 }
 

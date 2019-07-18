@@ -22,8 +22,9 @@ int main() {
 
     std::string s = "x*3 - (y-2) - z/2";
     std::cout << s << std::endl;
-    t = tree::parseTree(s);
-    //printTree(t);
+    tree::Tree* pt = tree::parseTree(s);
+    //tree::printTree(pt);
+    //tree::freeTree(pt);
 
     return 0;
 }

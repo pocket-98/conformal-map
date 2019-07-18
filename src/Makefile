@@ -15,7 +15,7 @@ TRGTST  		= a.out-test
 CC      		= gcc
 CXX     		= g++
 GCCOPTS 		= -Wall -Wextra -pedantic -ansi -std=c99
-GXXOPTS 		= -Wall -Wextra -pedantic -ansi -std=c++11
+GXXOPTS 		= -Wall -Wextra -pedantic -ansi -std=c++11 -g
 LDLIBS  		=
 CCOPTS  		= $(GCCOPTS) $(FLAGS)
 CXXOPTS 		= $(GXXOPTS) $(FLAGS)

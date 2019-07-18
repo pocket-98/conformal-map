@@ -72,7 +72,7 @@ std::ostream& print_subintervals(std::ostream& out, const std::vector<int>& term
     while (term != lastterm) {
         j = *(term++);
         if (j == 0) { // start next term
-            out << std::endl;
+            out << ' ';
             c1 = '+';
             c2 = '-';
             continue;
@@ -89,18 +89,79 @@ std::ostream& print_subintervals(std::ostream& out, const std::vector<int>& term
             c2 = '/';
         }
     }
-    return out << std::endl;
+    return out;
 }
 
-int test_tree::test_parse() {
-    const char* s = "-x + y*z";
-    int l = strlen(s);
+int test_tree::test_subdivide() {
+    const char* s;
     std::stringstream out;
-    std::stringstream err;
-    const std::vector<int>& terms = tree::subdivide(s, 0, l, &err);
-    testequal("unexpected err message", "", err.str());
+    std::vector<int> terms;
+
+    s = "-x + y*z";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
     print_subintervals(out, terms);
-    std::cout << out.str();
+    testequal("wrong subintervals", "-[1,3) +[4,6)*[7,8)", out.str());
+    out.str("");
+
+    s = "x + -y*z";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals", "+[0,2) -[5,6)*[7,8)", out.str());
+    out.str("");
+
+    s = "x - -y*z";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals", "+[0,2) +[5,6)*[7,8)", out.str());
+    out.str("");
+
+    s = "  + x*y^2 + (y-z)/x";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals","+[3,5)*[6,10) +[11,17)/[18,19)",out.str());
+    out.str("");
+
+    s = "x*-y + (y-z)**x";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", \
+        "error: extra - at char 2: 'x*-y + (y-z)**x'\n"
+        "error: extra * at char 13: 'x*-y + (y-z)**x'\n",
+        out.str()
+    );
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "((x+i*y) + (x-i*y) / 2";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", \
+        "error: missing ) at char 22: '((x+i*y) + (x-i*y) / 2'\n",
+        out.str()
+    );
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "(x+i*y) - (x-i*y)) / 2";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", \
+        "error: missing ( at char 0: '(x+i*y) - (x-i*y)) / 2'\n",
+        out.str()
+    );
+    out.str("");
+    print_subintervals(out, terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
 
     return EXIT_SUCCESS;
 }
@@ -109,7 +170,7 @@ int test_tree::run_all() {
     int fails = 0;
     testfn(test_tree::test_create, "tree::createTree(), tree::freeTree()");
     testfn(test_tree::test_print, "tree::printTree()");
-    testfn(test_tree::test_parse, "tree::subdivide()");
+    testfn(test_tree::test_subdivide, "tree::subdivide()");
     return fails;
 }
 

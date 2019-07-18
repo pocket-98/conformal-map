@@ -13,7 +13,7 @@ namespace test_tree {
     /* return 0 for success and 1 for failure */
     int test_create();
     int test_print();
-    int test_parse();
+    int test_subdivide();
     /* returns number of failures */
     int run_all();
 }

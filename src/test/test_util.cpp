@@ -4,8 +4,6 @@
  */
 #include "test_util.hpp"
 
-extern const int test_util::NUM_TESTS;
-
 int test_util::test_mean() {
     double x[] = {1.0};
     testequalish("single element array", 1.0, util::mean(x, 1));

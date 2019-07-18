@@ -2,8 +2,8 @@
  * @file test/test_util.hpp
  * @author Pavan Dayal
  */
-#ifndef _TEST_UTIL_H
-#define _TEST_UTIL_H
+#ifndef TEST_UTIL_H
+#define TEST_UTIL_H
 
 #include "test.hpp"
 #include "../util.hpp"
@@ -18,4 +18,4 @@ namespace test_util {
     int run_all();
 }
 
-#endif /* _TEST_UTIL_H */
+#endif /* TEST_UTIL_H */

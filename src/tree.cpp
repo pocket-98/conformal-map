@@ -17,6 +17,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
     std::vector<int>::const_iterator p, pend;
 
     std::vector<int> terms; // holds all + and * subintervals with 0 as delimiter
+    bool notfirst = false; // whether looking at first character in subinterval
 
     // break up into +- substring intervals [+-a, b) and track parenthesis
     // for each term subinterval, break into subintervals of products [+-c, d)
@@ -39,7 +40,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
 
         if (brackets == 0) {
             if (c == '+') {
-                if (k == 1) { // error: + appeared after * or /
+                if (k == 1 && notfirst) { // error: + appeared after * or /
                     termerr.push_back(i+1);
                 } else if (j == 1) { // increase |a| for new substring start
                     if (terms.back() < 0) {
@@ -55,7 +56,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                 j = 0;
                 k = 0;
             } else if (c == '-') {
-                if (k == 1) { // error: - appeared after * or /
+                if (k == 1 && notfirst) { // warning: - appeared after * or /
                     termerr.push_back(-i-1);
                 } else if (j == 1) { // increase |a| and flip sign for new start
                     if (terms.back() > 0) {
@@ -78,6 +79,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                     terms.push_back(i+2); // start next subsubinterval
                 }
                 k = 0;
+                notfirst = true;
             } else if (c == '/') {
                 if (k == 1) { // error: / appeared after another operator
                     proderr.push_back(-i-1);
@@ -86,6 +88,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                     terms.push_back(-i-2);
                 }
                 k = 0;
+                notfirst = true;
             }
         }
     }
@@ -109,7 +112,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
         tend = termerr.cend();
         pend = proderr.cend();
         while (p!=pend || t!=tend) {
-            if ((*p)*(*p) < (*t)*(*t) || t == tend) {
+            if (t == tend || (p != pend && (*p)*(*p) < (*t)*(*t))) {
                 if (*p > 0) {
                     *err << "error: extra * at char " << *(p++) - 1 << ": '";
                 } else {
@@ -139,31 +142,32 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
 tree::Tree* parseTreeHelper(const char* s, int a, int b) {
     const std::vector<int>& terms = tree::subdivide(s, a, b);
     std::vector<int>::const_iterator term, lastterm;
-    char c, c2;
-    int j = 0;
-    int k;
+    char c1 = '+';
+    char c2 = '-';
+    int j, k;
     lastterm = terms.cend();
-    for (term=terms.cbegin(); term!=lastterm;) {
-        c = '+';
-        c2 = '-';
-        while (term != lastterm) {
-            j = *(term++);
-            if (j == 0) { // start next term
-                break;
-            }
+    term=terms.cbegin();
+    while (term != lastterm) {
+        j = *(term++);
+        if (j == 0) { // start next term
+            std::cout << std::endl;
+            c1 = '+';
+            c2 = '-';
+            continue;
+        } else {
             k = *(term++) - 1;
             if (j >= 0) {
                 j = j - 1;
-                std::cout << c << '[' << j << ',' << k << ')';
+                std::cout << c1 << '[' << j << ',' << k << ')';
             } else {
                 j = -j - 1;
                 std::cout << c2 << '[' << j << ',' << k << ')';
             }
-            c = '*';
+            c1 = '*';
             c2 = '/';
         }
-        std::cout << std::endl;
     }
+    std::cout << std::endl;
 
 //        if (j > 1) {
 //            parent = createTree(2);
@@ -193,11 +197,13 @@ std::ostream& operator<<(std::ostream& out, tree::Tree* t) {
     const char* expr = t->expression->str;
     int i = 0;
     int j = 0;
-    char c = ' ';
-    while (c != '\0') {
+    char c;
+    while (true) {
         c = expr[j++];
         if (c == '$') {
             out << t->children[i++];
+        } else if (c == '\0') {
+            break;
         } else {
             out << c;
         }

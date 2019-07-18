@@ -8,8 +8,8 @@ CSOURCES		=
 HEADERS 		= util.hpp tree.hpp
 TARGET  		= a.out
 
-TEST    		= test/test_util.cpp test/main.cpp
-THEADERS		= test/test_util.hpp test/test.hpp
+TEST    		= test/test_util.cpp test/test_tree.cpp test/main.cpp
+THEADERS		= test/test_util.hpp test/test_tree.hpp test/test.hpp
 TRGTST  		= a.out-test
 
 CC      		= gcc

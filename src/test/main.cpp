@@ -2,8 +2,8 @@
  * @file test/main.cpp
  * @author Pavan Dayal
  */
-#include "test.hpp"
 #include "test_util.hpp"
+#include "test_tree.hpp"
 
 std::string indent = " * ";
 
@@ -15,6 +15,13 @@ int main() {
     std::cerr << "testing util.hpp:" << std::endl;
     f = test_util::run_all();
     t = test_util::NUM_TESTS;
+    std::cerr << "passed (" << t - f << "/" << t << ")" << std::endl;
+    fails += f;
+    total += t;
+
+    std::cerr << "testing tree.hpp:" << std::endl;
+    f = test_tree::run_all();
+    t = test_tree::NUM_TESTS;
     std::cerr << "passed (" << t - f << "/" << t << ")" << std::endl;
     fails += f;
     total += t;

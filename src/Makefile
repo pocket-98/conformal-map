@@ -3,9 +3,9 @@
 
 BIN     		= ../bin/
 MAIN    		= main.cpp
-SOURCES 		= util.cpp
+SOURCES 		= util.cpp tree.cpp
 CSOURCES		=
-HEADERS 		= util.hpp
+HEADERS 		= util.hpp tree.hpp
 TARGET  		= a.out
 
 TEST    		= test/test_util.cpp test/main.cpp

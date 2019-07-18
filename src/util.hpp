@@ -2,8 +2,8 @@
  * @file util.hpp
  * @author Pavan Dayal
  */
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef UTIL_H
+#define UTIL_H
 
 #include <vector>
 #include <cmath>
@@ -18,4 +18,4 @@ namespace util {
     double std(const std::vector<double>& arr);
 }
 
-#endif /* _UTIL_H */
+#endif /* UTIL_H */

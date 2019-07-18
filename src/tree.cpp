@@ -4,27 +4,28 @@
  */
 #include "tree.hpp"
 #include <cstring>
-#include <vector>
 
-tree::Tree* parseTreeHelper(const char* s, int a, int b) {
-    tree::Tree* parent = NULL;
-    tree::Tree* child = NULL;
+const std::vector<std::vector<int>>&
+tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     int i;
     int j = 0;
     int k = 0;
-    char c;
+    char c, c2;
     int brackets = 0;
     std::vector<int> terms; // contains substring intervals for terms
     std::vector<int> prod; // subintervals of products for a single term
+    std::vector<int> termerr; // indices where parsing ambiguous for terms
     std::vector<int> proderr; // indices where parsing ambiguous for products
-    std::vector<std::vector<int>> prods; // containter for all product subintervals
     std::vector<int>::const_iterator t, tend;
     std::vector<int>::const_iterator p, pend;
+    std::vector<std::vector<int>>::const_iterator pp, ppend;
 
-    // break up by + and - into substring intervals [+-a, b) and track parenthesis
-    // for each term subinterval, break into sub-subintervals of products [+-c, d)
-    terms.push_back(a+1); // start first + interval
-    prod.push_back(a+1); // start first * interval
+    // holds all addition and multiplication sub intervals
+    std::vector<std::vector<int>>& prods = *(new std::vector<std::vector<int>>);
+
+    // break up into +- substring intervals [+-a, b) and track parenthesis
+    // for each term subinterval, break into subintervals of products [+-c, d)
+    prod.push_back(a+1); // start first + * interval
     for (i=a; i<b; ++i) {
         c = s[i];
         if (c == '\t' || c == '\n') {
@@ -43,17 +44,15 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
 
         if (brackets == 0) {
             if (c == '+') {
-                if (j == 1) { // increase |a| for new substring start
-                    if (terms.back() < 0) {
-                        terms.back() = -i - 2;
+                if (k == 1) { // error: + appeared after * or /
+                    termerr.push_back(i+1);
+                } else if (j == 1) { // increase |a| for new substring start
+                    if (prod.back() < 0) {
                         prod.back() = -i - 2;
                     } else {
-                        terms.back() = i + 2;
                         prod.back() = i + 2;
                     }
                 } else { // end interval and start new interval with +a and +c
-                    terms.push_back(i+1);
-                    terms.push_back(i+2);
                     prod.push_back(i+1);
                     prods.push_back(prod);
                     prod.clear();
@@ -62,110 +61,103 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
                 j = 0;
                 k = 0;
             } else if (c == '-') {
-                if (j == 1) { // increase |a| and flip sign for new substring start
-                    if (terms.back() > 0) {
-                        terms.back() = -i - 2;
+                if (k == 1) { // error: - appeared after * or /
+                    termerr.push_back(-i-1);
+                } else if (j == 1) { // increase |a| and flip sign for new start
+                    if (prod.back() > 0) {
                         prod.back() = -i - 2;
                     } else {
-                        terms.back() = i + 2;
                         prod.back() = i + 2;
                     }
                 } else { // end interval and start new interval with -a and +c
-                    terms.push_back(i+1);
-                    terms.push_back(-i-2);
                     prod.push_back(i+1);
                     prods.push_back(prod);
                     prod.clear();
-                    prod.push_back(i+2);
+                    prod.push_back(-i-2);
                 }
                 j = 0;
                 k = 0;
             } else if (c == '*') {
-                if (k == 1) { // increase |k| for new subsubstring start
+                if (k == 1) { // error: * appeared after another operator
                     proderr.push_back(i+1);
-                    if (prod.back() < 0) {
-                        prod.back() = -i - 2;
-                    } else {
-                        prod.back() = i + 2;
-                    }
                 } else { // end interval and start new interval with +a
                     prod.push_back(i+1);
                     prod.push_back(i+2);
                 }
                 k = 0;
             } else if (c == '/') {
-                if (k == 1) { // increase |k| for new subsubstring start
+                if (k == 1) { // error: / appeared after another operator
                     proderr.push_back(-i-1);
-                    if (prod.back() < 0) {
-                        prod.back() = -i - 2;
-                    } else {
-                        prod.back() = i + 2;
-                    }
                 } else { // end interval and start new interval with +a
                     prod.push_back(i+1);
-                    prod.push_back(i+2);
+                    prod.push_back(-i-2);
                 }
                 k = 0;
             }
         }
     }
-    terms.push_back(b+1); // close last + interval
-    prod.push_back(b+1); // close last * interval
+    prod.push_back(b+1); // close last +* interval
     prods.push_back(prod);
 
-    // check for parsing ambiguity
-    i = 0;
-    pend = proderr.cend();
-    for (p=proderr.cbegin(); p!=pend; ++p) {
-        if (*p > 0) {
-            std::cerr << "error: extra * at char " << *p - 1 << ": '";
-        } else {
-            std::cerr << "error: extra / at char " << -*p - 1 << ": '";
+    // print errors for parsing ambiguity
+    if (err != NULL) {
+        t = termerr.cbegin();
+        p = proderr.cbegin();
+        tend = termerr.cend();
+        pend = proderr.cend();
+        while (p!=pend || t!=tend) {
+            if ((*p)*(*p) < (*t)*(*t) || t == tend) {
+                if (*p > 0) {
+                    *err << "error: extra * at char " << *(p++) - 1 << ": '";
+                } else {
+                    *err << "error: extra / at char " << -*(p++) - 1 << ": '";
+                }
+            } else {
+                if (*t > 0) {
+                    *err << "error: extra + at char " << *(t++) - 1 << ": '";
+                } else {
+                    *err << "error: extra - at char " << -*(t++) - 1 << ": '";
+                }
+            }
+            for (i=a; i<b; ++i) {
+                *err << s[i];
+            }
+            *err << '\'' << std::endl;
         }
-        for (i=a; i<b; ++i) {
-            std::cerr << s[i];
-        }
-        std::cerr << "'\n";
     }
 
-    if (i) {
-        return NULL;
+    if (termerr.size() + proderr.size() > 0) {
+        prods.clear();
     }
 
     // print each term and its products as subintervals +(a,b)*[c,d]*[c,d]
-    i = 0;
-    tend = terms.cend();
-    for (t=terms.cbegin(); t!=tend;) {
-        j = *(t++);
-        k = *(t++) - 1;
-        prod = prods[i++];
-        pend = prod.cend();
-        if (j >= 0) {
-            j = j - 1;
-            std::cout << "+(" << j << ',' << k << ')';
-        } else {
-            j = -j - 1;
-            std::cout << "-(" << j << ',' << k << ')';
-        }
-        for (p=prod.cbegin(); p!=pend;) {
-            if (*p >= 0) {
-                std::cout << "*[" << *(p++) - 1 << ',';
-                std::cout << *(p++) - 1 << ']';
+    ppend = prods.cend();
+    for (pp=prods.cbegin() ; pp!=ppend; ++pp) {
+        p = (*pp).cbegin();
+        pend = (*pp).cend();
+        c = '+';
+        c2 = '-';
+        while (p!=pend) {
+            j = *(p++);
+            k = *(p++) - 1;
+            if (j >= 0) {
+                j = j - 1;
+                std::cout << c << '[' << j << ',' << k << ']';
             } else {
-                std::cout << "/[" << -*(p++) - 1 << ',';
-                std::cout << *(p++) - 1 << ']';
+                j = -j - 1;
+                std::cout << c2 << '[' << j << ',' << k << ']';
             }
+            c = '*';
+            c2 = '/';
         }
-        std::cout << ' ';
-    }
-    std::cout << std::endl;
-
-    // recursively parse each subinterval and combine with addition
-    if (terms.size() > 2) {
+        std::cout << std::endl;
     }
 
-    return child;
+    return prods;
+}
 
+tree::Tree* parseTreeHelper(const char* s, int a, int b) {
+    const std::vector<std::vector<int>>& prods = tree::subdivide(s, a, b);
 //        if (j > 1) {
 //            parent = createTree(2);
 //            parent->expression->str = "$ $"; // add 2 children
@@ -177,8 +169,8 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
 //            parent->children[0] = parseTreeHelper(s, i, i);
 //        }
 //        break;
-
-    return NULL;
+    int l = prods.size();
+    return tree::createTree(l);
 }
 
 tree::Tree* tree::parseTree(const std::string& s) {
@@ -189,6 +181,7 @@ tree::Tree* tree::parseTree(const char* s) {
     return parseTreeHelper(s, 0, strlen(s));
 }
 
+// print tree using tree.expression.str like printf format
 std::ostream& operator<<(std::ostream& out, tree::Tree* t) {
     const char* expr = t->expression->str;
     int i = 0;

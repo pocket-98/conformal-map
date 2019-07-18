@@ -6,6 +6,7 @@
 #define TREE_H
 
 #include <iostream>
+#include <vector>
 
 namespace tree {
     /** holds string representation and function to evaluate */
@@ -21,9 +22,21 @@ namespace tree {
         int n;
     };
 
+    /**
+     * extract the subintervals for dividing the string into a sum of products
+     * prods = { <[a,d1) [c2,d2) [c3,b)>, <[a,d) [c,b)>, <[a,b)> }
+     * each element represents a subinterval for a term
+     * each element has an element representing a subsubinterval for a factor
+     * the sign of the first factor for each term indicates + or -
+     * the sign of every factor after the first indicates * or /
+     */
+    const std::vector<std::vector<int>>&
+    subdivide(const char* s, int a, int b, std::ostream* err=&std::cerr);
+
     /** create an expression tree from math string */
     Tree* parseTree(const std::string& s);
     Tree* parseTree(const char* s);
+
 
     /** malloc a new tree with n children */
     Tree* createTree(int n);

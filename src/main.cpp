@@ -20,7 +20,7 @@ int main() {
     std::cout << t << std::endl;
     tree::freeTree(t);
 
-    std::string s = "x*(y - + z)-3/2/(z)+sin(z)/2";
+    std::string s = "x*3 - (y-2) - z/2";
     std::cout << s << std::endl;
     t = tree::parseTree(s);
     //printTree(t);

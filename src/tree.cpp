@@ -10,22 +10,20 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     int i;
     int j = 0;
     int k = 0;
-    char c, c2;
+    char c;
     int brackets = 0;
-    std::vector<int> terms; // contains substring intervals for terms
-    std::vector<int> prod; // subintervals of products for a single term
     std::vector<int> termerr; // indices where parsing ambiguous for terms
     std::vector<int> proderr; // indices where parsing ambiguous for products
     std::vector<int>::const_iterator t, tend;
     std::vector<int>::const_iterator p, pend;
-    std::vector<std::vector<int>>::const_iterator pp, ppend;
 
     // holds all addition and multiplication sub intervals
-    std::vector<std::vector<int>>& prods = *(new std::vector<std::vector<int>>);
+    std::vector<std::vector<int>>& terms = *(new std::vector<std::vector<int>>);
+    std::vector<int> term; // subintervals of products for a single term
 
     // break up into +- substring intervals [+-a, b) and track parenthesis
     // for each term subinterval, break into subintervals of products [+-c, d)
-    prod.push_back(a+1); // start first + * interval
+    term.push_back(a+1); // start first + * interval
     for (i=a; i<b; ++i) {
         c = s[i];
         if (c == '\t' || c == '\n') {
@@ -47,16 +45,16 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 if (k == 1) { // error: + appeared after * or /
                     termerr.push_back(i+1);
                 } else if (j == 1) { // increase |a| for new substring start
-                    if (prod.back() < 0) {
-                        prod.back() = -i - 2;
+                    if (term.back() < 0) {
+                        term.back() = -i - 2;
                     } else {
-                        prod.back() = i + 2;
+                        term.back() = i + 2;
                     }
                 } else { // end interval and start new interval with +a and +c
-                    prod.push_back(i+1);
-                    prods.push_back(prod);
-                    prod.clear();
-                    prod.push_back(i+2);
+                    term.push_back(i+1);
+                    terms.push_back(term);
+                    term.clear();
+                    term.push_back(i+2);
                 }
                 j = 0;
                 k = 0;
@@ -64,16 +62,16 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 if (k == 1) { // error: - appeared after * or /
                     termerr.push_back(-i-1);
                 } else if (j == 1) { // increase |a| and flip sign for new start
-                    if (prod.back() > 0) {
-                        prod.back() = -i - 2;
+                    if (term.back() > 0) {
+                        term.back() = -i - 2;
                     } else {
-                        prod.back() = i + 2;
+                        term.back() = i + 2;
                     }
                 } else { // end interval and start new interval with -a and +c
-                    prod.push_back(i+1);
-                    prods.push_back(prod);
-                    prod.clear();
-                    prod.push_back(-i-2);
+                    term.push_back(i+1);
+                    terms.push_back(term);
+                    term.clear();
+                    term.push_back(-i-2);
                 }
                 j = 0;
                 k = 0;
@@ -81,23 +79,23 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 if (k == 1) { // error: * appeared after another operator
                     proderr.push_back(i+1);
                 } else { // end interval and start new interval with +a
-                    prod.push_back(i+1);
-                    prod.push_back(i+2);
+                    term.push_back(i+1);
+                    term.push_back(i+2);
                 }
                 k = 0;
             } else if (c == '/') {
                 if (k == 1) { // error: / appeared after another operator
                     proderr.push_back(-i-1);
                 } else { // end interval and start new interval with +a
-                    prod.push_back(i+1);
-                    prod.push_back(-i-2);
+                    term.push_back(i+1);
+                    term.push_back(-i-2);
                 }
                 k = 0;
             }
         }
     }
-    prod.push_back(b+1); // close last +* interval
-    prods.push_back(prod);
+    term.push_back(b+1); // close last +* interval
+    terms.push_back(term);
 
     // print errors for parsing ambiguity
     if (err != NULL) {
@@ -127,19 +125,27 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     }
 
     if (termerr.size() + proderr.size() > 0) {
-        prods.clear();
+        terms.clear();
     }
 
-    // print each term and its products as subintervals +(a,b)*[c,d]*[c,d]
-    ppend = prods.cend();
-    for (pp=prods.cbegin() ; pp!=ppend; ++pp) {
-        p = (*pp).cbegin();
-        pend = (*pp).cend();
+    return terms;
+}
+
+tree::Tree* parseTreeHelper(const char* s, int a, int b) {
+    const std::vector<std::vector<int>>& terms = tree::subdivide(s, a, b);
+
+    std::vector<std::vector<int>>::const_iterator term, lastterm = terms.cend();
+    std::vector<int>::const_iterator prod, prodend;
+    char c, c2;
+    int j, k;
+    for (term=terms.cbegin(); term!=lastterm; ++term) {
+        prod = (*term).cbegin();
+        prodend = (*term).cend();
         c = '+';
         c2 = '-';
-        while (p!=pend) {
-            j = *(p++);
-            k = *(p++) - 1;
+        while (prod != prodend) {
+            j = *(prod++);
+            k = *(prod++) - 1;
             if (j >= 0) {
                 j = j - 1;
                 std::cout << c << '[' << j << ',' << k << ']';
@@ -153,11 +159,6 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
         std::cout << std::endl;
     }
 
-    return prods;
-}
-
-tree::Tree* parseTreeHelper(const char* s, int a, int b) {
-    const std::vector<std::vector<int>>& prods = tree::subdivide(s, a, b);
 //        if (j > 1) {
 //            parent = createTree(2);
 //            parent->expression->str = "$ $"; // add 2 children
@@ -169,7 +170,7 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
 //            parent->children[0] = parseTreeHelper(s, i, i);
 //        }
 //        break;
-    int l = prods.size();
+    int l = terms.size();
     return tree::createTree(l);
 }
 

@@ -201,6 +201,27 @@ std::string tree::subintervalString(const std::vector<int>& terms) {
     return out.str();
 }
 
+// print tree using prefix notation
+void prefixStringHelper(std::ostream& out, tree::Tree* t) {
+    if (t->n == 0) {
+        out << t->expression->str;
+    } else {
+        out << t->expression->op << '(';
+        prefixStringHelper(out, t->children[0]);
+        for (int i=1; i<t->n; ++i) {
+            out << ',';
+            prefixStringHelper(out, t->children[i]);
+        }
+        out << ')';
+    }
+}
+
+std::string tree::prefixString(tree::Tree* t) {
+    std::stringstream out;
+    prefixStringHelper(out, t);
+    return out.str();
+}
+
 tree::Tree* handleFactor(const char* s, int a, int b) {
     //TODO implement recursion
     std::stringstream expr;
@@ -211,6 +232,7 @@ tree::Tree* handleFactor(const char* s, int a, int b) {
     }
     tree::Tree* t = tree::createTree(0);
     t->expression->str = expr.str();
+    t->expression->op = "value";
     return t;
 }
 
@@ -258,9 +280,6 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
     const std::vector<int>& terms = tree::subdivide(s, a, b);
     std::vector<int>::const_iterator terms_ptr = terms.cbegin();
 
-    std::cout << "num terms: " << terms[0] << std::endl;
-    std::cout << tree::subintervalString(terms) << std::endl;
-
     num_terms = *(terms_ptr++);
     if (num_terms == 0) {
         return NULL;
@@ -294,17 +313,20 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
                 prod_str << " $";
                 prod = tree::createTree(1);
                 prod->expression->str = "/ $";
+                prod->expression->op = "inverse";
                 prod->children[0] = handleFactor(s, newa, newb);
                 term->children[j] = prod;
             }
         }
         term->expression->str = prod_str.str();
+        term->expression->op = "multiply";
         t = term;
     }
     if (negative) {
         prod = t;
         t = tree::createTree(1);
         t->expression->str = "-$"; // no space since only 1 term
+        t->expression->op = "negate";
         t->children[0] = prod;
     }
 
@@ -343,17 +365,20 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
                         prod_str << " $";
                         prod = tree::createTree(1);
                         prod->expression->str = "/ $";
+                        prod->expression->op = "inverse";
                         prod->children[0] = handleFactor(s, newa, newb);
                         term->children[j] = prod;
                     }
                 }
                 term->expression->str = prod_str.str();
+                term->expression->op = "multiply";
             }
 
             if (negative) {
                 prod = term;
                 term = tree::createTree(1);
                 term->expression->str = "- $"; // space since second term
+                term->expression->op = "negate"; // space since second term
                 term->children[0] = prod;
                 term_str << " $"; // prepare to append this - term to t
             } else {
@@ -362,6 +387,7 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
             t->children[i] = term;
         }
         t->expression->str = term_str.str();
+        t->expression->op = "add";
     }
 
     return t;

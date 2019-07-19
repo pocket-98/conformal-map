@@ -6,11 +6,13 @@
 #include "tree.hpp"
 
 int main() {
-    std::string s = "-x/pi-1/2";
+    std::string s = "-x/2 + 3*z^2-y";
     std::cout << s << std::endl;
-    tree::Tree* pt = tree::parseTree(s);
-    std::cout << pt << std::endl;
-    tree::freeTree(pt);
+
+    tree::Tree* t = tree::parseTree(s);
+    std::cout << tree::prefixString(t) << std::endl;
+    std::cout << t << std::endl;
+    tree::freeTree(t);
 
     return 0;
 }

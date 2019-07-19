@@ -15,14 +15,19 @@ int test_tree::test_create() {
 
     t = tree::createTree(2);
     t->expression->str = "$ + $";
+    t->expression->op = "add";
     t->children[0] = tree::createTree(2);
     t->children[0]->expression->str = "$*$";
+    t->children[0]->expression->op = "multiply";
     t->children[0]->children[0] = tree::createTree(0);
     t->children[0]->children[0]->expression->str = "x";
+    t->children[0]->children[0]->expression->op = "value";
     t->children[0]->children[1] = tree::createTree(0);
     t->children[0]->children[1]->expression->str = "y";
+    t->children[0]->children[1]->expression->op = "value";
     t->children[1] = tree::createTree(0);
     t->children[1]->expression->str = "z";
+    t->children[1]->expression->op = "value";
 
     testequal("2 children", 2, t->n);
     testnotnull("children array null", t->children);
@@ -42,18 +47,28 @@ int test_tree::test_create() {
 int test_tree::test_print() {
     tree::Tree* t = tree::createTree(2);
     t->expression->str = "$ + $";
+    t->expression->op = "add";
     t->children[0] = tree::createTree(2);
     t->children[0]->expression->str = "$*$";
+    t->children[0]->expression->op = "multiply";
     t->children[0]->children[0] = tree::createTree(0);
     t->children[0]->children[0]->expression->str = "x";
+    t->children[0]->children[0]->expression->op = "value";
     t->children[0]->children[1] = tree::createTree(0);
     t->children[0]->children[1]->expression->str = "y";
+    t->children[0]->children[1]->expression->op = "value";
     t->children[1] = tree::createTree(0);
     t->children[1]->expression->str = "z";
+    t->children[1]->expression->op = "value";
 
     std::stringstream out;
     out << t;
     testequal("bad print", "x*y + z", out.str());
+    out.str("");
+
+    out << tree::prefixString(t);
+    testequal("bad prefix print", "add(multiply(x,y),z)", out.str());
+    out.str("");
 
     tree::freeTree(t);
     return EXIT_SUCCESS;
@@ -63,6 +78,38 @@ int test_tree::test_subdivide() {
     const char* s;
     std::stringstream out;
     std::vector<int> terms;
+
+    terms.push_back(0);
+    out << tree::subintervalString(terms);
+    testequal("string not blank", "", out.str());
+    out.str("");
+
+    terms[0] = 1;
+    terms.push_back(1);
+    terms.push_back(5+1);
+    terms.push_back(10+1);
+    out << tree::subintervalString(terms);
+    testequal("subintervals displayed wrong", "+[5,10)", out.str());
+    out.str("");
+
+    terms[1] = 2;
+    terms[2] = -5-1;
+    terms.push_back(-15-1);
+    terms.push_back(17+1);
+    out << tree::subintervalString(terms);
+    testequal("string wrong", "-[5,10)/[15,17)", out.str());
+    out.str("");
+
+    terms[0] = 2;
+    terms.push_back(2);
+    terms.push_back(20+1);
+    terms.push_back(21+1);
+    terms.push_back(24+1);
+    terms.push_back(25+1);
+    out << tree::subintervalString(terms);
+    testequal("string wrong", "-[5,10)/[15,17) +[20,21)*[24,25)", out.str()
+    );
+    out.str("");
 
     s = "-x + y*z";
     terms = tree::subdivide(s, 0, strlen(s), &out);
@@ -189,8 +236,8 @@ int test_tree::test_subdivide() {
 int test_tree::run_all() {
     int fails = 0;
     testfn(test_tree::test_create, "tree::createTree(), tree::freeTree()");
-    testfn(test_tree::test_print, "tree::printTree()");
-    testfn(test_tree::test_subdivide, "tree::subdivide()");
+    testfn(test_tree::test_print, "tree::operator<<(), tree::prefixString()");
+    testfn(test_tree::test_subdivide, "tree::subdivide(), tree::subdivideString()");
     return fails;
 }
 

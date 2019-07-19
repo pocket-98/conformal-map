@@ -3,9 +3,32 @@
  * @author Pavan Dayal
  */
 #include "tree.hpp"
-#include "test/test_tree.hpp"
 #include <cstring>
 #include <sstream>
+
+// 3 calls to new
+tree::Tree* tree::createTree(int n) {
+    tree::Tree* t = new tree::Tree;
+    t->expression = new Expression;
+    if (n == 0) {
+        t->children = NULL;
+    } else {
+        t->children = new tree::Tree*[n];
+    }
+    t->n = n;
+    return t;
+}
+
+void tree::freeTree(tree::Tree* t) {
+    int i;
+    for (i=0; i<t->n; ++i) {
+        freeTree(t->children[i]);
+    }
+    // 3 calls to delete
+    delete t->expression;
+    delete[] t->children;
+    delete t;
+}
 
 const std::vector<int>
 tree::subdivide(const char* s, int a, int b, std::ostream* err) {
@@ -165,63 +188,40 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     return terms;
 }
 
-std::string tree::subintervalString(const std::vector<int>& terms) {
-    std::stringstream out;
-    std::vector<int>::const_iterator term, lastterm;
-    char c1 = '+';
-    char c2 = '-';
-    int j, k;
-    int prod_ctr;
-    lastterm = terms.cend();
-    term = terms.cbegin();
-    if (*(term++) > 0) {
-        prod_ctr = *(term++);
-    }
-    while (term != lastterm) {
-        j = *(term++);
-        if (prod_ctr-- == 0) { // start next term
-            prod_ctr = j;
-            out << ' ';
-            c1 = '+';
-            c2 = '-';
-            continue;
-        } else {
-            k = *(term++) - 1;
-            if (j >= 0) {
-                j = j - 1;
-                out << c1 << '[' << j << ',' << k << ')';
-            } else {
-                j = -j - 1;
-                out << c2 << '[' << j << ',' << k << ')';
-            }
-            c1 = '*';
-            c2 = '/';
-        }
-    }
-    return out.str();
-}
+/////////////////////////////////////////
+// algorithm: parse_tree               //
+/////////////////////////////////////////
+//  terms = subdivide()                //
+//  tree = add(x1,x2,x3,...)           //
+//  for term in terms:                 //
+//      t = multiply(x1,x2,x3,...)     //
+//      for prod in term:              //
+//          p = handle_factor(prod)    //
+//          t.children.append(p)       //
+//      tree.children.append(t)        //
+//  return tree                        //
+/////////////////////////////////////////
+// algorithm: handle_factor            //
+/////////////////////////////////////////
+//  if prod_has_form f(x+y)^g(z+w):    //
+//      p = pow(x1,x2)                 //
+//       * child1 = f(x1)              //
+//         * child11 = parse_tree(x+y) //
+//       * child2 = g(x1)              //
+//         * child21 = parse_tree(z+w) //
+//  else if prod_has_form f(a*b)':     //
+//      p = conjugate(x1)              //
+//       * child1 = f(x1)              //
+//         * child11 = parse_tree(a*b) //
+//  else if prod_has_form f(z^2):      //
+//      p = f(x1)                      //
+//       * child11 = parse_tree(z^2)   //
+//  else: // prod_has_form z           //
+//      p = constant_or_variable(z)    //
+//  return p                           //
+/////////////////////////////////////////
 
-// print tree using prefix notation
-void prefixStringHelper(std::ostream& out, tree::Tree* t) {
-    if (t->n == 0) {
-        out << t->expression->str;
-    } else {
-        out << t->expression->op << '(';
-        prefixStringHelper(out, t->children[0]);
-        for (int i=1; i<t->n; ++i) {
-            out << ',';
-            prefixStringHelper(out, t->children[i]);
-        }
-        out << ')';
-    }
-}
-
-std::string tree::prefixString(tree::Tree* t) {
-    std::stringstream out;
-    prefixStringHelper(out, t);
-    return out.str();
-}
-
+// break down factor into tree of function calls and values
 tree::Tree* handleFactor(const char* s, int a, int b) {
     //TODO implement recursion
     std::stringstream expr;
@@ -236,40 +236,8 @@ tree::Tree* handleFactor(const char* s, int a, int b) {
     return t;
 }
 
+// create tree of sums of products
 tree::Tree* parseTreeHelper(const char* s, int a, int b) {
-    ////////////////////////////////////////
-    // algorithm: recursive_parse
-    ////////////////////////////////////////
-    //  terms = subdivide()
-    //  tree = add(x1,x2,x3,...)
-    //  for term in terms:
-    //      t = multiply(x1,x2,x3,...)
-    //      for prod in term:
-    //          p = handleFactor(prod)
-    //          t.children.append(p)
-    //      tree.children.append(t)
-    //  return tree
-    ////////////////////////////////////////
-    // algorithm: handleFactor
-    ////////////////////////////////////////
-    //  if prod_has_form f(x+y)^g(z+w):
-    //      p = pow(x1,x2)
-    //       * child1 = f(x1)
-    //         * child11 = recursive_parse(x+y)
-    //       * child2 = g(x1)
-    //         * child21 = recursive_parse(z+w)
-    //  else if prod_has_form f(a*b)':
-    //      p = conjugate(x1)
-    //       * child1 = f(x1)
-    //         * child11 = recursive_parse(a*b)
-    //  else if prod_has_form f(z^2):
-    //      p = f(x1)
-    //       * child11 = recursive_parse(z^2)
-    //  else: // prod_has_form z
-    //      p = constant_or_variable(z)
-    //  return p
-    ////////////////////////////////////////
-
     int i, j, newa, newb;
     int num_terms, num_prods;
     bool negative;
@@ -401,6 +369,64 @@ tree::Tree* tree::parseTree(const char* s) {
     return parseTreeHelper(s, 0, strlen(s));
 }
 
+// print + - * / subintervals from list of indices
+std::string tree::subintervalString(const std::vector<int>& terms) {
+    std::stringstream out;
+    std::vector<int>::const_iterator term, lastterm;
+    char c1 = '+';
+    char c2 = '-';
+    int j, k;
+    int prod_ctr;
+    lastterm = terms.cend();
+    term = terms.cbegin();
+    if (*(term++) > 0) {
+        prod_ctr = *(term++);
+    }
+    while (term != lastterm) {
+        j = *(term++);
+        if (prod_ctr-- == 0) { // start next term
+            prod_ctr = j;
+            out << ' ';
+            c1 = '+';
+            c2 = '-';
+            continue;
+        } else {
+            k = *(term++) - 1;
+            if (j >= 0) {
+                j = j - 1;
+                out << c1 << '[' << j << ',' << k << ')';
+            } else {
+                j = -j - 1;
+                out << c2 << '[' << j << ',' << k << ')';
+            }
+            c1 = '*';
+            c2 = '/';
+        }
+    }
+    return out.str();
+}
+
+// print tree using prefix notation
+void prefixStringHelper(std::ostream& out, tree::Tree* t) {
+    if (t->n == 0) {
+        out << t->expression->str;
+    } else {
+        out << t->expression->op << '(';
+        prefixStringHelper(out, t->children[0]);
+        for (int i=1; i<t->n; ++i) {
+            out << ',';
+            prefixStringHelper(out, t->children[i]);
+        }
+        out << ')';
+    }
+}
+
+std::string tree::prefixString(tree::Tree* t) {
+    std::stringstream out;
+    prefixStringHelper(out, t);
+    return out.str();
+}
+
 // print tree using tree.expression.str like printf format
 std::ostream& operator<<(std::ostream& out, tree::Tree* t) {
     const char* expr = t->expression->str.c_str();
@@ -418,29 +444,5 @@ std::ostream& operator<<(std::ostream& out, tree::Tree* t) {
         }
     }
     return out;
-}
-
-// 3 calls to new
-tree::Tree* tree::createTree(int n) {
-    tree::Tree* t = new tree::Tree;
-    t->expression = new Expression;
-    if (n == 0) {
-        t->children = NULL;
-    } else {
-        t->children = new tree::Tree*[n];
-    }
-    t->n = n;
-    return t;
-}
-
-void tree::freeTree(tree::Tree* t) {
-    int i;
-    for (i=0; i<t->n; ++i) {
-        freeTree(t->children[i]);
-    }
-    // 3 calls to delete
-    delete t->expression;
-    delete[] t->children;
-    delete t;
 }
 

@@ -11,7 +11,7 @@
 namespace tree {
     /** holds string representation and function to evaluate */
     struct Expression {
-        const char* str;
+        std::string str;
     };
 
     /** tree with arbitrary number of children */
@@ -35,7 +35,7 @@ namespace tree {
     subdivide(const char* s, int a, int b, std::ostream* err=&std::cerr);
 
     /* print out the subintervals for + - * / to output stream */
-    std::string subinterval_string(const std::vector<int>& terms);
+    std::string subintervalString(const std::vector<int>& terms);
 
     /** create an expression tree from math string */
     Tree* parseTree(const std::string& s);

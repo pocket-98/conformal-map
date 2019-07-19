@@ -69,7 +69,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 2, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "-[1,3) +[4,6)*[7,8)", out.str());
     out.str("");
 
@@ -78,7 +78,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 2, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "+[0,2) -[5,6)*[7,8)", out.str());
     out.str("");
 
@@ -87,7 +87,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 2, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "+[0,2) +[5,6)*[7,8)", out.str());
     out.str("");
 
@@ -96,7 +96,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 2, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals","+[3,5)*[6,10) +[11,17)/[18,19)", out.str());
     out.str("");
 
@@ -105,7 +105,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 2, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals","+[4,5)*[6,10) +[11,17)", out.str());
     out.str("");
 
@@ -114,7 +114,7 @@ int test_tree::test_subdivide() {
     testequal("unexpected err message", "", out.str());
     out.str("");
     testequal("number of terms", 1, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals","+[0,9)", out.str());
     out.str("");
 
@@ -127,7 +127,7 @@ int test_tree::test_subdivide() {
     );
     out.str("");
     testequal("number of terms", 0, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals","", out.str());
     out.str("");
 
@@ -142,7 +142,7 @@ int test_tree::test_subdivide() {
     );
     out.str("");
     testequal("number of terms", 0, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals","", out.str());
     out.str("");
 
@@ -155,7 +155,7 @@ int test_tree::test_subdivide() {
     );
     out.str("");
     testequal("number of terms", 0, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 
@@ -167,7 +167,7 @@ int test_tree::test_subdivide() {
     );
     out.str("");
     testequal("number of terms", 0, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 
@@ -179,7 +179,7 @@ int test_tree::test_subdivide() {
     );
     out.str("");
     testequal("number of terms", 0, terms[0]);
-    out << tree::subinterval_string(terms);
+    out << tree::subintervalString(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 

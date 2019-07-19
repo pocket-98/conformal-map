@@ -3,8 +3,8 @@
 
 BIN     		= ../bin/
 MAIN    		= main.cpp
-SOURCES 		= tree.cpp
 CSOURCES		=
+SOURCES 		= tree.cpp
 HEADERS 		= tree.hpp
 TARGET  		= a.out
 

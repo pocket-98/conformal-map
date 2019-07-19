@@ -165,10 +165,7 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     return terms;
 }
 
-/**
- * print subintervals for + and *
- */
-std::string tree::subinterval_string(const std::vector<int>& terms) {
+std::string tree::subintervalString(const std::vector<int>& terms) {
     std::stringstream out;
     std::vector<int>::const_iterator term, lastterm;
     char c1 = '+';
@@ -204,11 +201,20 @@ std::string tree::subinterval_string(const std::vector<int>& terms) {
     return out.str();
 }
 
-tree::Tree* parseTreeHelper(const char* s, int a, int b) {
-    const std::vector<int>& terms = tree::subdivide(s, a, b);
-    std::cout << "num terms: " << terms[0] << std::endl;
-    std::cout << tree::subinterval_string(terms) << std::endl;
+tree::Tree* handleFactor(const char* s, int a, int b) {
+    //TODO implement recursion
+    std::stringstream expr;
+    const char* end = s + b;
+    s = s + a;
+    while (s != end) {
+        expr << *(s++);
+    }
+    tree::Tree* t = tree::createTree(0);
+    t->expression->str = expr.str();
+    return t;
+}
 
+tree::Tree* parseTreeHelper(const char* s, int a, int b) {
     ////////////////////////////////////////
     // algorithm: recursive_parse
     ////////////////////////////////////////
@@ -217,39 +223,148 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
     //  for term in terms:
     //      t = multiply(x1,x2,x3,...)
     //      for prod in term:
-    //          if prod_has_form f(x+y)^g(z+w):
-    //              p = pow(x1,x2)
-    //               * child1 = f(x1)
-    //                 * child11 = recursive_parse(x+y)
-    //               * child2 = g(x1)
-    //                 * child21 = recursive_parse(z+w)
-    //          else if prod_has_form f(a*b)':
-    //              p = conjugate(x1)
-    //               * child1 = f(x1)
-    //                 * child11 = recursive_parse(a*b)
-    //          else if prod_has_form f(z^2):
-    //              p = f(x1)
-    //               * child11 = recursive_parse(z^2)
-    //          else: // prod_has_form z
-    //              p = constant_or_variable(z)
+    //          p = handleFactor(prod)
     //          t.children.append(p)
     //      tree.children.append(t)
     //  return tree
     ////////////////////////////////////////
+    // algorithm: handleFactor
+    ////////////////////////////////////////
+    //  if prod_has_form f(x+y)^g(z+w):
+    //      p = pow(x1,x2)
+    //       * child1 = f(x1)
+    //         * child11 = recursive_parse(x+y)
+    //       * child2 = g(x1)
+    //         * child21 = recursive_parse(z+w)
+    //  else if prod_has_form f(a*b)':
+    //      p = conjugate(x1)
+    //       * child1 = f(x1)
+    //         * child11 = recursive_parse(a*b)
+    //  else if prod_has_form f(z^2):
+    //      p = f(x1)
+    //       * child11 = recursive_parse(z^2)
+    //  else: // prod_has_form z
+    //      p = constant_or_variable(z)
+    //  return p
+    ////////////////////////////////////////
 
-//        if (j > 1) {
-//            paren t = createTree(2);
-//            parent->expression->str = "$ $"; // add 2 children
-//            parent->children[0] = parseTreeHelper(s, a, i);
-//            parent->children[1] = parseTreeHelper(s, i, b);
-//        } else {
-//            parent = createTree(1);
-//            parent->expression->str = "- $"; // negate child
-//            parent->children[0] = parseTreeHelper(s, i, i);
-//        }
-//        break;
+    int i, j, newa, newb;
+    int num_terms, num_prods;
+    bool negative;
+    tree::Tree* t;
+    tree::Tree* term;
+    tree::Tree* prod;
+    std::stringstream term_str, prod_str;
+    const std::vector<int>& terms = tree::subdivide(s, a, b);
+    std::vector<int>::const_iterator terms_ptr = terms.cbegin();
 
-    return NULL;
+    std::cout << "num terms: " << terms[0] << std::endl;
+    std::cout << tree::subintervalString(terms) << std::endl;
+
+    num_terms = *(terms_ptr++);
+    if (num_terms == 0) {
+        return NULL;
+    }
+
+    num_prods = *(terms_ptr++);
+    newa = *(terms_ptr++);
+    newb = *(terms_ptr++) - 1;
+    if (newa >= 0) { // the term is positive
+        newa -= 1;
+        negative = false;
+    } else { // the term is negative
+        newa = -newa - 1;
+        negative = true;
+    }
+    t = handleFactor(s, newa, newb);
+    if (num_prods > 1) { // create parent to hold all factors
+        prod = t;
+        term = tree::createTree(num_prods);
+        prod_str << "$";
+        term->children[0] = prod;
+        for (j=1; j<num_prods; ++j) {
+            newa = *(terms_ptr++);
+            newb = *(terms_ptr++) - 1;
+            if (newa >= 0) { // this factor gets multiplied
+                newa -= 1;
+                prod_str << " * $";
+                term->children[j] = handleFactor(s, newa, newb);
+            } else { // this factor geds divided
+                newa = -newa - 1; // ones complement
+                prod_str << " $";
+                prod = tree::createTree(1);
+                prod->expression->str = "/ $";
+                prod->children[0] = handleFactor(s, newa, newb);
+                term->children[j] = prod;
+            }
+        }
+        term->expression->str = prod_str.str();
+        t = term;
+    }
+    if (negative) {
+        prod = t;
+        t = tree::createTree(1);
+        t->expression->str = "-$"; // no space since only 1 term
+        t->children[0] = prod;
+    }
+
+    if (num_terms > 1) {
+        term = t;
+        t = tree::createTree(num_terms);
+        term_str << "$";
+        t->children[0] = term;
+        for (i=1; i<num_terms; ++i) {
+            prod_str.str("");
+            num_prods = *(terms_ptr++);
+            newa = *(terms_ptr++);
+            newb = *(terms_ptr++) - 1;
+            if (newa >= 0) { // the term is positive
+                newa -= 1;
+                negative = false;
+            } else { // the term is negative
+                newa = -newa - 1;
+                negative = true;
+            }
+            term = handleFactor(s, newa, newb);
+            if (num_prods > 1) { // create parent to hold all factors
+                prod = term;
+                term = tree::createTree(num_prods);
+                prod_str << "$";
+                term->children[0] = prod;
+                for (j=1; j<num_prods; ++j) {
+                    newa = *(terms_ptr++);
+                    newb = *(terms_ptr++) - 1;
+                    if (newa >= 0) { // this factor gets multiplied
+                        newa -= 1;
+                        prod_str << " * $";
+                        term->children[j] = handleFactor(s, newa, newb);
+                    } else { // this factor geds divided
+                        newa = -newa - 1; // ones complement
+                        prod_str << " $";
+                        prod = tree::createTree(1);
+                        prod->expression->str = "/ $";
+                        prod->children[0] = handleFactor(s, newa, newb);
+                        term->children[j] = prod;
+                    }
+                }
+                term->expression->str = prod_str.str();
+            }
+
+            if (negative) {
+                prod = term;
+                term = tree::createTree(1);
+                term->expression->str = "- $"; // space since second term
+                term->children[0] = prod;
+                term_str << " $"; // prepare to append this - term to t
+            } else {
+                term_str << " + $"; // prepare to append this + term to t
+            }
+            t->children[i] = term;
+        }
+        t->expression->str = term_str.str();
+    }
+
+    return t;
 }
 
 tree::Tree* tree::parseTree(const std::string& s) {
@@ -262,7 +377,7 @@ tree::Tree* tree::parseTree(const char* s) {
 
 // print tree using tree.expression.str like printf format
 std::ostream& operator<<(std::ostream& out, tree::Tree* t) {
-    const char* expr = t->expression->str;
+    const char* expr = t->expression->str.c_str();
     int i = 0;
     int j = 0;
     char c;

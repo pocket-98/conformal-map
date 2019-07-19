@@ -9,14 +9,13 @@
 
 const std::vector<int>
 tree::subdivide(const char* s, int a, int b, std::ostream* err) {
-    int i;
+    int i, l;
     int j = 0;
     int k = 0;
     int prod_ctr;
     char c;
     int brackets = 0;
-    std::vector<int> termerr; // indices where parsing ambiguous for terms
-    std::vector<int> proderr; // indices where parsing ambiguous for products
+    bool error = false;
     std::vector<int>::const_iterator t, tend;
     std::vector<int>::const_iterator p, pend;
 
@@ -37,6 +36,17 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
             ++brackets;
         } else if (c == ')') {
             --brackets;
+            if (brackets < 0) {
+                error = true;
+                if (err != NULL) {
+                    *err << "error: missing ( at char 0: '";
+                    for (l=a; l<b; ++l) { *err << s[l]; }
+                    *err << '\'' << std::endl;
+                    ++brackets;
+                } else {
+                    break;
+                }
+            }
         }
 
         // track how many characters since last + or - and since last * or /
@@ -48,7 +58,14 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
         if (brackets == 0) {
             if (c == '+') {
                 if (k == 1 && notfirst) { // error: + appeared after * or /
-                    termerr.push_back(i+1);
+                    error = true;
+                    if (err != NULL) {
+                        *err << "error: extra + at char " << i << ": '";
+                        for (l=a; l<b; ++l) { *err << s[l]; }
+                        *err << '\'' << std::endl;
+                    } else {
+                        break;
+                    }
                 } else if (j == 1) { // increase |a| for new substring start
                     if (terms.back() < 0) {
                         terms.back() = -i - 2;
@@ -65,8 +82,15 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 j = 0;
                 k = 0;
             } else if (c == '-') {
-                if (k == 1 && notfirst) { // warning: - appeared after * or /
-                    termerr.push_back(-i-1);
+                if (k == 1 && notfirst) { // error: - appeared after * or /
+                    error = true;
+                    if (err != NULL) {
+                        *err << "error: extra - at char " << i << ": '";
+                        for (l=a; l<b; ++l) { *err << s[l]; }
+                        *err << '\'' << std::endl;
+                    } else {
+                        break;
+                    }
                 } else if (j == 1) { // increase |a| and flip sign for new start
                     if (terms.back() > 0) {
                         terms.back() = -i - 2;
@@ -84,7 +108,14 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 k = 0;
             } else if (c == '*') {
                 if (k == 1) { // error: * appeared after another operator
-                    proderr.push_back(i+1);
+                    error = true;
+                    if (err != NULL) {
+                        *err << "error: extra * at char " << i << ": '";
+                        for (l=a; l<b; ++l) { *err << s[l]; }
+                        *err << '\'' << std::endl;
+                    } else {
+                        break;
+                    }
                 } else { // end interval and start new interval with +a
                     terms.push_back(i+1); // close last subsubinterval
                     terms.push_back(i+2); // start next subsubinterval
@@ -94,7 +125,14 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 notfirst = true;
             } else if (c == '/') {
                 if (k == 1) { // error: / appeared after another operator
-                    proderr.push_back(-i-1);
+                    error = true;
+                    if (err != NULL) {
+                        *err << "error: extra / at char " << i << ": '";
+                        for (l=a; l<b; ++l) { *err << s[l]; }
+                        *err << '\'' << std::endl;
+                    } else {
+                        break;
+                    }
                 } else { // end interval and start new interval with +a
                     terms.push_back(i+1);
                     terms.push_back(-i-2);
@@ -108,44 +146,18 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     terms.push_back(b+1); // close last +* interval
 
     // print errors for parsing ambiguity
-    if (err != NULL) {
-        if (brackets > 0) {
-            *err << "error: missing ) at char " << b << ": '";
-        } else if (brackets < 0) {
-            *err << "error: missing ( at char 0" << ": '";
-        }
-        if (brackets != 0) {
-            for (i=a; i<b; ++i) {
-                *err << s[i];
+    if (brackets > 0) {
+        error = true;
+        if (err != NULL) {
+            while (brackets-- > 0) {
+                *err << "error: missing ) at char " << b << ": '";
+                for (l=a; l<b; ++l) { *err << s[l]; }
+                *err << '\'' << std::endl;
             }
-            *err << '\'' << std::endl;
-        }
-        t = termerr.cbegin();
-        p = proderr.cbegin();
-        tend = termerr.cend();
-        pend = proderr.cend();
-        while (p!=pend || t!=tend) {
-            if (t == tend || (p != pend && (*p)*(*p) < (*t)*(*t))) {
-                if (*p > 0) {
-                    *err << "error: extra * at char " << *(p++) - 1 << ": '";
-                } else {
-                    *err << "error: extra / at char " << -*(p++) - 1 << ": '";
-                }
-            } else {
-                if (*t > 0) {
-                    *err << "error: extra + at char " << *(t++) - 1 << ": '";
-                } else {
-                    *err << "error: extra - at char " << -*(t++) - 1 << ": '";
-                }
-            }
-            for (i=a; i<b; ++i) {
-                *err << s[i];
-            }
-            *err << '\'' << std::endl;
         }
     }
 
-    if (termerr.size() + proderr.size() > 0 || brackets != 0) {
+    if (error) {
         terms.clear();
         terms.push_back(0);
     }

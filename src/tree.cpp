@@ -3,12 +3,16 @@
  * @author Pavan Dayal
  */
 #include "tree.hpp"
+#include "test/test_tree.hpp"
 #include <cstring>
+#include <sstream>
 
-const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream* err) {
+const std::vector<int>
+tree::subdivide(const char* s, int a, int b, std::ostream* err) {
     int i;
     int j = 0;
     int k = 0;
+    int prod_ctr;
     char c;
     int brackets = 0;
     std::vector<int> termerr; // indices where parsing ambiguous for terms
@@ -16,11 +20,14 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
     std::vector<int>::const_iterator t, tend;
     std::vector<int>::const_iterator p, pend;
 
-    std::vector<int> terms; // holds all + and * subintervals with 0 as delimiter
+    std::vector<int> terms; // holds all + and * subintervals with delimiter: 0
     bool notfirst = false; // whether looking at first character in subinterval
 
     // break up into +- substring intervals [+-a, b) and track parenthesis
     // for each term subinterval, break into subintervals of products [+-c, d)
+    terms.push_back(1); // number of terms total
+    terms.push_back(1); // number of products in term
+    prod_ctr = 1;
     terms.push_back(a+1); // start first + * interval
     for (i=a; i<b; ++i) {
         c = s[i];
@@ -50,7 +57,9 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                     }
                 } else { // end interval and start new interval with +a and +c
                     terms.push_back(i+1); // close last subinterval
-                    terms.push_back(0); // delimeter between terms
+                    terms[0] += 1; // increase total number of terms counter
+                    prod_ctr = terms.size();
+                    terms.push_back(1); // set number of products counter
                     terms.push_back(i+2); // start next subinterval
                 }
                 j = 0;
@@ -66,7 +75,9 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                     }
                 } else { // end interval and start new interval with -a and +c
                     terms.push_back(i+1); // close last subinterval
-                    terms.push_back(0);
+                    terms[0] += 1; // increase total number of terms counter
+                    prod_ctr = terms.size();
+                    terms.push_back(1); // set number of products counter
                     terms.push_back(-i-2); // start next subinterval
                 }
                 j = 0;
@@ -77,6 +88,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                 } else { // end interval and start new interval with +a
                     terms.push_back(i+1); // close last subsubinterval
                     terms.push_back(i+2); // start next subsubinterval
+                    terms[prod_ctr] += 1; // increase number of products counter
                 }
                 k = 0;
                 notfirst = true;
@@ -86,6 +98,7 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
                 } else { // end interval and start new interval with +a
                     terms.push_back(i+1);
                     terms.push_back(-i-2);
+                    terms[prod_ctr] += 1; // increase number of products counter
                 }
                 k = 0;
                 notfirst = true;
@@ -134,23 +147,32 @@ const std::vector<int> tree::subdivide(const char* s, int a, int b, std::ostream
 
     if (termerr.size() + proderr.size() > 0 || brackets != 0) {
         terms.clear();
+        terms.push_back(0);
     }
 
     return terms;
 }
 
-tree::Tree* parseTreeHelper(const char* s, int a, int b) {
-    const std::vector<int>& terms = tree::subdivide(s, a, b);
+/**
+ * print subintervals for + and *
+ */
+std::string tree::subinterval_string(const std::vector<int>& terms) {
+    std::stringstream out;
     std::vector<int>::const_iterator term, lastterm;
     char c1 = '+';
     char c2 = '-';
     int j, k;
+    int prod_ctr;
     lastterm = terms.cend();
-    term=terms.cbegin();
+    term = terms.cbegin();
+    if (*(term++) > 0) {
+        prod_ctr = *(term++);
+    }
     while (term != lastterm) {
         j = *(term++);
-        if (j == 0) { // start next term
-            std::cout << std::endl;
+        if (prod_ctr-- == 0) { // start next term
+            prod_ctr = j;
+            out << ' ';
             c1 = '+';
             c2 = '-';
             continue;
@@ -158,19 +180,53 @@ tree::Tree* parseTreeHelper(const char* s, int a, int b) {
             k = *(term++) - 1;
             if (j >= 0) {
                 j = j - 1;
-                std::cout << c1 << '[' << j << ',' << k << ')';
+                out << c1 << '[' << j << ',' << k << ')';
             } else {
                 j = -j - 1;
-                std::cout << c2 << '[' << j << ',' << k << ')';
+                out << c2 << '[' << j << ',' << k << ')';
             }
             c1 = '*';
             c2 = '/';
         }
     }
-    std::cout << std::endl;
+    return out.str();
+}
+
+tree::Tree* parseTreeHelper(const char* s, int a, int b) {
+    const std::vector<int>& terms = tree::subdivide(s, a, b);
+    std::cout << "num terms: " << terms[0] << std::endl;
+    std::cout << tree::subinterval_string(terms) << std::endl;
+
+    ////////////////////////////////////////
+    // algorithm: recursive_parse
+    ////////////////////////////////////////
+    //  terms = subdivide()
+    //  tree = add(x1,x2,x3,...)
+    //  for term in terms:
+    //      t = multiply(x1,x2,x3,...)
+    //      for prod in term:
+    //          if prod_has_form f(x+y)^g(z+w):
+    //              p = pow(x1,x2)
+    //               * child1 = f(x1)
+    //                 * child11 = recursive_parse(x+y)
+    //               * child2 = g(x1)
+    //                 * child21 = recursive_parse(z+w)
+    //          else if prod_has_form f(a*b)':
+    //              p = conjugate(x1)
+    //               * child1 = f(x1)
+    //                 * child11 = recursive_parse(a*b)
+    //          else if prod_has_form f(z^2):
+    //              p = f(x1)
+    //               * child11 = recursive_parse(z^2)
+    //          else: // prod_has_form z
+    //              p = constant_or_variable(z)
+    //          t.children.append(p)
+    //      tree.children.append(t)
+    //  return tree
+    ////////////////////////////////////////
 
 //        if (j > 1) {
-//            parent = createTree(2);
+//            paren t = createTree(2);
 //            parent->expression->str = "$ $"; // add 2 children
 //            parent->children[0] = parseTreeHelper(s, a, i);
 //            parent->children[1] = parseTreeHelper(s, i, b);

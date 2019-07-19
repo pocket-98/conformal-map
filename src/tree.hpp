@@ -23,14 +23,19 @@ namespace tree {
     };
 
     /**
-     * extract the + - * / subintervals for dividing the string into a sum of products
-     * terms = { [a,d1),[c2,d2),[c3,b), 0, [a,d),[c,b), 0, [a,b) }
-     * each group ints represents a subinterval for a term demited with 0s
+     * extract the + - * / subintervals for dividing the string into terms
+     * terms = n, { [a,d1),[c2,d2),[c3,b), 0, [a,d),[c,b), 0, [a,b) }
+     * first element in array gives total number of terms
+     * each group ints represents a subinterval for a term delimited with 0s
      * every term is broken into subsubinterval for a factor
      * the sign of the first factor for each term indicates + or -
      * the sign of every factor after the first indicates * or /
      */
-    const std::vector<int> subdivide(const char* s, int a, int b, std::ostream* err=&std::cerr);
+    const std::vector<int>
+    subdivide(const char* s, int a, int b, std::ostream* err=&std::cerr);
+
+    /* print out the subintervals for + - * / to output stream */
+    std::string subinterval_string(const std::vector<int>& terms);
 
     /** create an expression tree from math string */
     Tree* parseTree(const std::string& s);

@@ -3,13 +3,14 @@
 
 BIN     		= ../bin/
 MAIN    		= main.cpp
-SOURCES 		= util.cpp tree.cpp
+SOURCES 		= tree.cpp
 CSOURCES		=
-HEADERS 		= util.hpp tree.hpp
+HEADERS 		= tree.hpp
 TARGET  		= a.out
 
-TEST    		= test/test_util.cpp test/test_tree.cpp test/main.cpp
-THEADERS		= test/test_util.hpp test/test_tree.hpp test/test.hpp
+TEST    		= test/main.cpp
+TSOURCES		= test/test_tree.cpp
+THEADERS		= test/test.hpp test/test_tree.hpp
 TRGTST  		= a.out-test
 
 CC      		= gcc
@@ -24,8 +25,9 @@ MKDIR   		= mkdir -p
 
 COBJ    		= $(patsubst %.c,$(BIN)%.o,$(CSOURCES))
 OBJ     		= $(patsubst %.cpp,$(BIN)%.o,$(SOURCES))
-MOBJ    		= $(patsubst %.cpp,$(BIN)%.o,$(MAIN))
-TOBJ    		= $(patsubst %.cpp,$(BIN)%.o,$(TEST))
+TOBJ    		= $(patsubst %.cpp,$(BIN)%.o,$(TSOURCES))
+MAINOBJ 		= $(patsubst %.cpp,$(BIN)%.o,$(MAIN))
+TMAINOBJ		= $(patsubst %.cpp,$(BIN)%.o,$(TEST))
 
 all:    		$(TARGET)
 
@@ -40,13 +42,13 @@ $(BIN)%.o: 		%.cpp $(HEADERS) $(THEADERS)
 				$(CXX) $(CXXOPTS) -o $@ -c $<
 
 # link executable
-$(TARGET):		$(OBJ) $(COBJ) $(MOBJ)
+$(TARGET):		$(OBJ) $(COBJ) $(MAINOBJ)
 				$(CXX) $(CXXOPTS) -o $@ $^ $(LDLIBS)
 #				$(CC) $(CCOPTS) -o $@ $^ $(LDLIBS)
 				@echo "binary compiled: '$(TARGET)'"
 
 # link test executable
-$(TRGTST):		$(OBJ) $(COBJ) $(TOBJ)
+$(TRGTST):		$(OBJ) $(COBJ) $(TOBJ) $(TMAINOBJ)
 				$(CXX) $(CXXOPTS) -o $@ $^ $(LDLIBS)
 #				$(CC) $(CCOPTS) -o $@ $^ $(LDLIBS)
 				@echo "binary compiled: '$(TRGTST)'"
@@ -58,6 +60,6 @@ test:   		$(TRGTST)
 
 # remove objects and executable
 clean:
-				$(RM) $(TARGET) $(OBJ) $(COBJ) $(MOBJ)
-				$(RM) $(TRGTST) $(TOBJ)
+				$(RM) $(TARGET) $(OBJ) $(COBJ) $(MAINOBJ)
+				$(RM) $(TRGTST) $(TOBJ) $(TMAINOBJ)
 

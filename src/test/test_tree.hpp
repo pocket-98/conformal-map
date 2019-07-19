@@ -7,6 +7,7 @@
 
 #include "test.hpp"
 #include "../tree.hpp"
+#include <iostream>
 
 namespace test_tree {
     const int NUM_TESTS = 3;

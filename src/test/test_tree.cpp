@@ -59,39 +59,6 @@ int test_tree::test_print() {
     return EXIT_SUCCESS;
 }
 
-/**
- * print subintervals for + and *
- */
-std::ostream& print_subintervals(std::ostream& out, const std::vector<int>& terms) {
-    std::vector<int>::const_iterator term, lastterm;
-    char c1 = '+';
-    char c2 = '-';
-    int j, k;
-    lastterm = terms.cend();
-    term = terms.cbegin();
-    while (term != lastterm) {
-        j = *(term++);
-        if (j == 0) { // start next term
-            out << ' ';
-            c1 = '+';
-            c2 = '-';
-            continue;
-        } else {
-            k = *(term++) - 1;
-            if (j >= 0) {
-                j = j - 1;
-                out << c1 << '[' << j << ',' << k << ')';
-            } else {
-                j = -j - 1;
-                out << c2 << '[' << j << ',' << k << ')';
-            }
-            c1 = '*';
-            c2 = '/';
-        }
-    }
-    return out;
-}
-
 int test_tree::test_subdivide() {
     const char* s;
     std::stringstream out;
@@ -101,7 +68,8 @@ int test_tree::test_subdivide() {
     terms = tree::subdivide(s, 0, strlen(s), &out);
     testequal("unexpected err message", "", out.str());
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 2, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "-[1,3) +[4,6)*[7,8)", out.str());
     out.str("");
 
@@ -109,7 +77,8 @@ int test_tree::test_subdivide() {
     terms = tree::subdivide(s, 0, strlen(s), &out);
     testequal("unexpected err message", "", out.str());
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 2, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "+[0,2) -[5,6)*[7,8)", out.str());
     out.str("");
 
@@ -117,7 +86,8 @@ int test_tree::test_subdivide() {
     terms = tree::subdivide(s, 0, strlen(s), &out);
     testequal("unexpected err message", "", out.str());
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 2, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "+[0,2) +[5,6)*[7,8)", out.str());
     out.str("");
 
@@ -125,7 +95,8 @@ int test_tree::test_subdivide() {
     terms = tree::subdivide(s, 0, strlen(s), &out);
     testequal("unexpected err message", "", out.str());
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 2, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals","+[3,5)*[6,10) +[11,17)/[18,19)",out.str());
     out.str("");
 
@@ -137,7 +108,8 @@ int test_tree::test_subdivide() {
         out.str()
     );
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 
@@ -148,7 +120,8 @@ int test_tree::test_subdivide() {
         out.str()
     );
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 
@@ -159,7 +132,8 @@ int test_tree::test_subdivide() {
         out.str()
     );
     out.str("");
-    print_subintervals(out, terms);
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subinterval_string(terms);
     testequal("wrong subintervals", "", out.str());
     out.str("");
 

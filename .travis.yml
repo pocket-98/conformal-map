@@ -1,0 +1,13 @@
+language: cpp
+
+compiler:
+    - clang
+    - gcc
+
+install:
+
+script:
+    - pushd src
+    - make
+    - make test
+    - popd

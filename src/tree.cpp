@@ -10,12 +10,13 @@
 tree::Tree* tree::createTree(int n) {
     tree::Tree* t = new tree::Tree;
     t->expression = new Expression;
-    if (n == 0) {
+    if (n <= 0) {
         t->children = NULL;
+        t->n = 0;
     } else {
         t->children = new tree::Tree*[n];
+        t->n = n;
     }
-    t->n = n;
     return t;
 }
 
@@ -177,6 +178,16 @@ tree::subdivide(const char* s, int a, int b, std::ostream* err) {
                 for (l=a; l<b; ++l) { *err << s[l]; }
                 *err << '\'' << std::endl;
             }
+        }
+    }
+
+    // print errors for no expression after operator
+    if (k == 0) {
+        error = true;
+        if (err != NULL) {
+            *err << "error: expected expression at char " << b << ": '";
+            for (l=a; l<b; ++l) { *err << s[l]; }
+            *err << '\'' << std::endl;
         }
     }
 

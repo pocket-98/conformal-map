@@ -41,6 +41,12 @@ int test_tree::test_create() {
     testnull("children array not null", t->children[0]->children[1]->children);
 
     tree::freeTree(t);
+
+    t = tree::createTree(-1);
+    testequal("0 children", 0, t->n);
+    testnull("children array not null", t->children);
+    tree::freeTree(t);
+
     return EXIT_SUCCESS;
 }
 
@@ -111,6 +117,24 @@ int test_tree::test_subdivide() {
     );
     out.str("");
 
+    s = "-1";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
+    testequal("number of terms", 1, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "-[1,2)", out.str());
+    out.str("");
+
+    s = "xy*z";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("unexpected err message", "", out.str());
+    out.str("");
+    testequal("number of terms", 1, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "+[0,2)*[3,4)", out.str());
+    out.str("");
+
     s = "-x + y*z";
     terms = tree::subdivide(s, 0, strlen(s), &out);
     testequal("unexpected err message", "", out.str());
@@ -165,9 +189,82 @@ int test_tree::test_subdivide() {
     testequal("wrong subintervals","+[0,9)", out.str());
     out.str("");
 
+    s = "*x";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: extra * at char 0: '*x'\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "*";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: extra * at char 0: '*'\n"
+        "error: expected expression at char 1: '*'\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "-";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: expected expression at char 1: '-'\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "+ ";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: expected expression at char 2: '+ '\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = " ";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: expected expression at char 1: ' '\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
+    s = "";
+    terms = tree::subdivide(s, 0, strlen(s), &out);
+    testequal("wrong err message",
+        "error: expected expression at char 0: ''\n",
+        out.str()
+    );
+    out.str("");
+    testequal("number of terms", 0, terms[0]);
+    out << tree::subintervalString(terms);
+    testequal("wrong subintervals", "", out.str());
+    out.str("");
+
     s = "a)(x-x0";
     terms = tree::subdivide(s, 0, strlen(s), &out);
-    testequal("unexpected err message",
+    testequal("wrong err message",
         "error: missing ( at char 0: 'a)(x-x0'\n"
         "error: missing ) at char 7: 'a)(x-x0'\n",
         out.str()
@@ -180,7 +277,7 @@ int test_tree::test_subdivide() {
 
     s = "a) )( (x";
     terms = tree::subdivide(s, 0, strlen(s), &out);
-    testequal("unexpected err message",
+    testequal("wrong err message",
         "error: missing ( at char 0: 'a) )( (x'\n"
         "error: missing ( at char 0: 'a) )( (x'\n"
         "error: missing ) at char 8: 'a) )( (x'\n"
@@ -195,7 +292,7 @@ int test_tree::test_subdivide() {
 
     s = "x*-y + (y-z)**x";
     terms = tree::subdivide(s, 0, strlen(s), &out);
-    testequal("unexpected err message", \
+    testequal("wrong err message", \
         "error: extra - at char 2: 'x*-y + (y-z)**x'\n"
         "error: extra * at char 13: 'x*-y + (y-z)**x'\n",
         out.str()
@@ -208,7 +305,7 @@ int test_tree::test_subdivide() {
 
     s = "((x+i*y) + (x-i*y) / 2";
     terms = tree::subdivide(s, 0, strlen(s), &out);
-    testequal("unexpected err message", \
+    testequal("wrong err message", \
         "error: missing ) at char 22: '((x+i*y) + (x-i*y) / 2'\n",
         out.str()
     );
@@ -220,7 +317,7 @@ int test_tree::test_subdivide() {
 
     s = "(x+i*y) - (x-i*y)) / 2";
     terms = tree::subdivide(s, 0, strlen(s), &out);
-    testequal("unexpected err message", \
+    testequal("wrong err message", \
         "error: missing ( at char 0: '(x+i*y) - (x-i*y)) / 2'\n",
         out.str()
     );

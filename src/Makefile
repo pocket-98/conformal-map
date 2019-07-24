@@ -36,7 +36,7 @@ GCOV    		= gcov
 COVOPTS 		= -fprofile-arcs -ftest-coverage
 GCOVOPTS		= -b -n
 GCOVPRNT		= grep -A 4 "\.cpp" | grep -v "/usr/include" \
-				| sed -re '/^No.*/d' | sed -re 's/(^Lin|^Bra|^Tak|^Cal)/    \1/'
+				| sed -E '/^No.*/d' | sed -E 's/(^Lin|^Bra|^Tak|^Cal)/    \1/'
 
 COVDA   		= $(patsubst %.c,$(BIN)%.gcda,$(CSOURCES)) \
 				$(patsubst %.cpp,$(BIN)%.gcda,$(SOURCES)) \

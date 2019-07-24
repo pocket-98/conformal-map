@@ -1,5 +1,7 @@
 # Makefile for a.out
 # usage: make [FLAGS=<flags>]
+# make test: compares expected to actual output
+# make cov:  rebuilds project, runs tests and checks line coverage
 
 BIN     		= ../bin/
 MAIN    		= main.cpp
@@ -29,6 +31,23 @@ TOBJ    		= $(patsubst %.cpp,$(BIN)%.o,$(TSOURCES))
 MAINOBJ 		= $(patsubst %.cpp,$(BIN)%.o,$(MAIN))
 TMAINOBJ		= $(patsubst %.cpp,$(BIN)%.o,$(TEST))
 
+TRGCOV  		= a.out-cov
+GCOV    		= gcov
+COVOPTS 		= -fprofile-arcs -ftest-coverage
+GCOVOPTS		= -b -n -j -k
+GCOVPRNT		= grep -A 4 "\.cpp" | grep -v "/usr/include" \
+				| sed -re '/^No.*/d' -re 's/(^Line|^Bran|^Take|^Call)/    \1/'
+
+COVDA   		= $(patsubst %.c,$(BIN)%.gcda,$(CSOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcda,$(SOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcda,$(TSOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcda,$(TEST))
+
+COVNO   		= $(patsubst %.c,$(BIN)%.gcno,$(CSOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcno,$(SOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcno,$(TSOURCES)) \
+				$(patsubst %.cpp,$(BIN)%.gcno,$(TEST)) \
+
 all:    		$(TARGET)
 
 # compile .c source files to objects (.o)
@@ -50,16 +69,38 @@ $(TARGET):		$(OBJ) $(COBJ) $(MAINOBJ)
 # link test executable
 $(TRGTST):		$(OBJ) $(COBJ) $(TOBJ) $(TMAINOBJ)
 				$(CXX) $(CXXOPTS) -o $@ $^ $(LDLIBS)
-#				$(CC) $(CCOPTS) -o $@ $^ $(LDLIBS)
 				@echo "binary compiled: '$(TRGTST)'"
 
 # run test executable
 test:   		$(TRGTST)
-				@echo "testing '$(TEST)':"
+				@echo "testing:"
 				./$(TRGTST)
 
+# compile .c source files to objects (.o) with line coverage on
+$(BIN)%.gcda:	%.c
+				@$(MKDIR) $(@D)
+				$(CC) $(CCOPTS) $(COVOPTS) -o $(patsubst %.gcda,%.o,$@) -c $<
+
+# compile .cpp source files to objects (.o) with line coverage on
+$(BIN)%.gcda:	%.cpp
+				@$(MKDIR) $(@D)
+				$(CXX) $(CXXOPTS) $(COVOPTS) -o $(patsubst %.gcda,%.o,$@) -c $<
+
+# link executable with line coverage on
+$(TRGCOV):		$(COVDA) $(COVNO)
+				$(CXX) $(CXXOPTS) $(COVOPTS) -o $@ $(OBJ) $(COBJ) $(TOBJ) $(TMAINOBJ) $(LDLIBS)
+				@echo "binary compiled: '$(TRGCOV)'"
+
+cov:    		$(TRGCOV)
+				@echo "testing:"
+				./$(TRGCOV)
+				@echo -e "\nchecking coverage '$(TRGCOV)':"
+				@$(GCOV) $(GCOVOPTS) $(COVDA) | $(GCOVPRNT)
+
 # remove objects and executable
+.PHONY: clean
 clean:
 				$(RM) $(TARGET) $(OBJ) $(COBJ) $(MAINOBJ)
 				$(RM) $(TRGTST) $(TOBJ) $(TMAINOBJ)
+				$(RM) $(TRGCOV) $(COVDA) $(COVNO)
 

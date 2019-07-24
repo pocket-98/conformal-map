@@ -34,9 +34,9 @@ TMAINOBJ		= $(patsubst %.cpp,$(BIN)%.o,$(TEST))
 TRGCOV  		= a.out-cov
 GCOV    		= gcov
 COVOPTS 		= -fprofile-arcs -ftest-coverage
-GCOVOPTS		= -b -n -j -k
+GCOVOPTS		= -b -n
 GCOVPRNT		= grep -A 4 "\.cpp" | grep -v "/usr/include" \
-				| sed -re '/^No.*/d' -re 's/(^Line|^Bran|^Take|^Call)/    \1/'
+				| sed -re '/^No.*/d' | sed -re 's/(^Lin|^Bra|^Tak|^Cal)/    \1/'
 
 COVDA   		= $(patsubst %.c,$(BIN)%.gcda,$(CSOURCES)) \
 				$(patsubst %.cpp,$(BIN)%.gcda,$(SOURCES)) \
